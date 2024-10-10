@@ -26162,58 +26162,119 @@ class GitHubIntegration extends IntegrationInterface {
     }
   }
 
-  async getAssetName({ octokit, context, fileName, filePath }) {
+  async getAssetName({ gitlab, fileName, filePath, headSHA }) {
     try {
       logger_logger.withInfo(
         "Getting asset name...",
-        integrationName,
-        headSHA,
+        gitlab_integration_integrationName,
+        CI_COMMIT_SHA,
         "getAssetName"
       );
 
       var regExp =
         /{{\s*config\s*\(\s*(?:[^,]*,)*\s*alias\s*=\s*['"]([^'"]+)['"](?:\s*,[^,]*)*\s*\)\s*}}/im;
       var fileContents = await this.getFileContents({
-        octokit,
-        context,
+        gitlab,
         filePath,
+        headSHA,
       });
 
-      if (fileContents) {
-	logger_logger.withInfo(
-        `going to execute a questionable regex that may break the entire flow`,
-        integrationName,
-        headSHA,
+      logger_logger.withInfo(
+        `Successfully fetched file contents. File size: ${fileContents.length} bytes`,
+        gitlab_integration_integrationName,
+        CI_COMMIT_SHA,
         "getAssetName"
-      );
-        var matches = regExp.exec(fileContents);
-        if (matches) {
-          logger_logger.withInfo(
-            `Found a match: ${matches[1].trim()}`,
-            integrationName,
-            headSHA,
-            "getAssetName"
-          );
-          return matches[1].trim();
+      );      
+
+      if (fileContents) {
+        logger_logger.withInfo(
+          "Starting regex matching",
+          gitlab_integration_integrationName,
+          CI_COMMIT_SHA,
+          "getAssetName"
+        );
+        const startRegex =
+            /{{\s*config\s*\(/im;
+        const startMatch = fileContents.match(startRegex);
+        let configSection = ''
+        if (startMatch) {
+          const startIndex = startMatch.index;
+          const openParensIndex = fileContents.indexOf('(', startIndex) + 1;
+          let openParensCount = 1;
+          let endIndex = openParensIndex;
+
+          while (openParensCount > 0 && endIndex < fileContents.length) {
+            const char = fileContents[endIndex];
+
+            if (char === '(') {
+                openParensCount++;
+            } else if (char === ')') {
+                openParensCount--;
+            }
+            endIndex++;
+            }
+            
+            const endMarker = '}}';
+            const finalEndIndex = fileContents.indexOf(endMarker, endIndex) + endMarker.length;
+
+            configSection = fileContents.substring(startIndex, finalEndIndex);
+            logger_logger.withInfo(
+              "Extracted config section",
+              gitlab_integration_integrationName,
+              CI_COMMIT_SHA,
+              "getAssetName"
+            );
+
+            if (configSection){
+              logger_logger.withInfo(
+                "Executing final regex",
+                gitlab_integration_integrationName,
+                CI_COMMIT_SHA,
+                "getAssetName"
+              );
+
+              var matches = regExp.exec(configSection);
+
+              logger_logger.withInfo(
+                "Successfully executed regex matching",
+                gitlab_integration_integrationName,
+                CI_COMMIT_SHA,
+                "getAssetName"
+              );
+
+            }
+            if (matches) {
+              logger_logger.withInfo(
+                `Found a match: ${matches[1].trim()}`,
+                gitlab_integration_integrationName,
+                CI_COMMIT_SHA,
+                "getAssetName"
+              );
+
+              return matches[1].trim();
+            }
         }
       }
+
       logger_logger.withInfo(
         `Using filename as asset name: ${fileName}`,
-        integrationName,
-        headSHA,
+        gitlab_integration_integrationName,
+        CI_COMMIT_SHA,
         "getAssetName"
       );
+
       return fileName;
     } catch (error) {
       logger_logger.withError(
         `Error getting asset name - ${error.message}`,
-        integrationName,
-        headSHA,
+        gitlab_integration_integrationName,
+        CI_COMMIT_SHA,
         "getAssetName"
       );
       throw error;
     }
   }
+
 
   async getFileContents({ octokit, context, filePath }) {
     try {
