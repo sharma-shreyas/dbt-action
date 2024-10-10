@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Action
-        uses: shreyas-sharma/dbt-action@main
+        uses: ./
         with:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           ATLAN_INSTANCE_URL: ${{secrets.ATLAN_INSTANCE_URL}}
