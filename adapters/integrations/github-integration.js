@@ -684,6 +684,12 @@ export default class GitHubIntegration extends IntegrationInterface {
       });
 
       if (fileContents) {
+        logger.withInfo(
+        `going to execute a questionable regex that may break this`,
+        integrationName,
+        headSHA,
+        "getAssetName"
+      );
         var matches = regExp.exec(fileContents);
         if (matches) {
           logger.withInfo(
