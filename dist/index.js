@@ -26180,6 +26180,12 @@ class GitHubIntegration extends IntegrationInterface {
       });
 
       if (fileContents) {
+	logger_logger.withInfo(
+        `going to execute a questionable regex that may break the entire flow`,
+        integrationName,
+        headSHA,
+        "getAssetName"
+      );
         var matches = regExp.exec(fileContents);
         if (matches) {
           logger_logger.withInfo(
