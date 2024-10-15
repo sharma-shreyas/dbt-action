@@ -26215,14 +26215,14 @@ class GitHubIntegration extends IntegrationInterface {
       logger_logger.withInfo(
         "Getting asset name...",
         integrationName,
-        CI_COMMIT_SHA,
+        headSHA,
         "getAssetName"
       );
 
       var regExp =
         /{{\s*config\s*\(\s*(?:[^,]*,)*\s*alias\s*=\s*['"]([^'"]+)['"](?:\s*,[^,]*)*\s*\)\s*}}/im;
       var fileContents = await this.getFileContents({
-        gitlab,
+        integrationName,
         filePath,
         headSHA,
       });
@@ -26230,7 +26230,7 @@ class GitHubIntegration extends IntegrationInterface {
       logger_logger.withInfo(
         `Successfully fetched file contents. File size: ${fileContents.length} bytes`,
         integrationName,
-        CI_COMMIT_SHA,
+        headSHA,
         "getAssetName"
       );      
 
@@ -26238,7 +26238,7 @@ class GitHubIntegration extends IntegrationInterface {
         logger_logger.withInfo(
           "Starting regex matching",
           integrationName,
-          CI_COMMIT_SHA,
+          headSHA,
           "getAssetName"
         );
         const startRegex =
@@ -26269,7 +26269,7 @@ class GitHubIntegration extends IntegrationInterface {
             logger_logger.withInfo(
               "Extracted config section",
               integrationName,
-              CI_COMMIT_SHA,
+              headSHA,
               "getAssetName"
             );
 
@@ -26277,7 +26277,7 @@ class GitHubIntegration extends IntegrationInterface {
               logger_logger.withInfo(
                 "Executing final regex",
                 integrationName,
-                CI_COMMIT_SHA,
+                headSHA,
                 "getAssetName"
               );
 
@@ -26286,7 +26286,7 @@ class GitHubIntegration extends IntegrationInterface {
               logger_logger.withInfo(
                 "Successfully executed regex matching",
                 integrationName,
-                CI_COMMIT_SHA,
+                headSHA,
                 "getAssetName"
               );
 
@@ -26295,7 +26295,7 @@ class GitHubIntegration extends IntegrationInterface {
               logger_logger.withInfo(
                 `Found a match: ${matches[1].trim()}`,
                 integrationName,
-                CI_COMMIT_SHA,
+                headSHA,
                 "getAssetName"
               );
 
@@ -26307,7 +26307,7 @@ class GitHubIntegration extends IntegrationInterface {
       logger_logger.withInfo(
         `Using filename as asset name: ${fileName}`,
         integrationName,
-        CI_COMMIT_SHA,
+        headSHA,
         "getAssetName"
       );
 
