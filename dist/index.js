@@ -26213,106 +26213,49 @@ class GitHubIntegration extends IntegrationInterface {
   async getFileContents({ octokit, context, filePath }) {
     try {
       logger_logger.withInfo(
-        "Getting asset name...",
+        "Fetching file contents...",
         integrationName,
         headSHA,
-        "getAssetName"
+        "getFileContents"
       );
 
-      var regExp =
-        /{{\s*config\s*\(\s*(?:[^,]*,)*\s*alias\s*=\s*['"]([^'"]+)['"](?:\s*,[^,]*)*\s*\)\s*}}/im;
-      var fileContents = await this.getFileContents({
-        integrationName,
-        filePath,
-        headSHA,
-      });
+      const { repository, pull_request } = context.payload,
+        owner = repository.owner.login,
+        repo = repository.name,
+        head_sha = pull_request.head.sha;
+
+      const res = await octokit
+        .request(
+          `GET /repos/${owner}/${repo}/contents/${filePath}?ref=${head_sha}`,
+          {
+            owner,
+            repo,
+            path: filePath,
+          }
+        )
+        .catch((e) => {
+          logger_logger.withError(
+            `Error fetching file contents: ${e.message}`,
+            integrationName,
+            headSHA,
+            "getFileContents"
+          );
+          return null;
+        });
+
+      if (!res) return null;
+
+      const buff = Buffer.from(res.data.content, "base64");
 
       logger_logger.withInfo(
-        `Successfully fetched file contents. File size: ${fileContents.length} bytes`,
+        "Successfully fetched file contents",
         integrationName,
         headSHA,
-        "getAssetName"
-      );      
-
-      if (fileContents) {
-        logger_logger.withInfo(
-          "Starting regex matching",
-          integrationName,
-          headSHA,
-          "getAssetName"
-        );
-        const startRegex =
-            /{{\s*config\s*\(/im;
-        const startMatch = fileContents.match(startRegex);
-        let configSection = ''
-        if (startMatch) {
-          const startIndex = startMatch.index;
-          const openParensIndex = fileContents.indexOf('(', startIndex) + 1;
-          let openParensCount = 1;
-          let endIndex = openParensIndex;
-
-          while (openParensCount > 0 && endIndex < fileContents.length) {
-            const char = fileContents[endIndex];
-
-            if (char === '(') {
-                openParensCount++;
-            } else if (char === ')') {
-                openParensCount--;
-            }
-            endIndex++;
-            }
-            
-            const endMarker = '}}';
-            const finalEndIndex = fileContents.indexOf(endMarker, endIndex) + endMarker.length;
-
-            configSection = fileContents.substring(startIndex, finalEndIndex);
-            logger_logger.withInfo(
-              "Extracted config section",
-              integrationName,
-              headSHA,
-              "getAssetName"
-            );
-
-            if (configSection){
-              logger_logger.withInfo(
-                "Executing final regex",
-                integrationName,
-                headSHA,
-                "getAssetName"
-              );
-
-              var matches = regExp.exec(configSection);
-
-              logger_logger.withInfo(
-                "Successfully executed regex matching",
-                integrationName,
-                headSHA,
-                "getAssetName"
-              );
-
-            }
-            if (matches) {
-              logger_logger.withInfo(
-                `Found a match: ${matches[1].trim()}`,
-                integrationName,
-                headSHA,
-                "getAssetName"
-              );
-
-              return matches[1].trim();
-            }
-        }
-      }
-
-      logger_logger.withInfo(
-        `Using filename as asset name: ${fileName}`,
-        integrationName,
-        headSHA,
-        "getAssetName"
+        "getFileContents"
       );
 
-      return fileName;
-    }catch (error) {
+      return buff.toString("utf8");
+    } catch (error) {
       logger_logger.withError(
         `Error in getFileContents: ${error.message}`,
         integrationName,
