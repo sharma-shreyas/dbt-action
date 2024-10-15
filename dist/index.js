@@ -26112,6 +26112,7 @@ class GitHubIntegration extends IntegrationInterface {
       var changedFiles = res.data
         .map(({ filename, status }) => {
           try {
+            console.log("flag1")
             const [modelName] = filename
               .match(/.*models\/(.*)\.sql/)[1]
               .split("/")
