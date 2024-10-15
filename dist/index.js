@@ -26213,49 +26213,106 @@ class GitHubIntegration extends IntegrationInterface {
   async getFileContents({ octokit, context, filePath }) {
     try {
       logger_logger.withInfo(
-        "Fetching file contents...",
+        "Getting asset name...",
         integrationName,
-        headSHA,
-        "getFileContents"
+        CI_COMMIT_SHA,
+        "getAssetName"
       );
 
-      const { repository, pull_request } = context.payload,
-        owner = repository.owner.login,
-        repo = repository.name,
-        head_sha = pull_request.head.sha;
-
-      const res = await octokit
-        .request(
-          `GET /repos/${owner}/${repo}/contents/${filePath}?ref=${head_sha}`,
-          {
-            owner,
-            repo,
-            path: filePath,
-          }
-        )
-        .catch((e) => {
-          logger_logger.withError(
-            `Error fetching file contents: ${e.message}`,
-            integrationName,
-            headSHA,
-            "getFileContents"
-          );
-          return null;
-        });
-
-      if (!res) return null;
-
-      const buff = Buffer.from(res.data.content, "base64");
+      var regExp =
+        /{{\s*config\s*\(\s*(?:[^,]*,)*\s*alias\s*=\s*['"]([^'"]+)['"](?:\s*,[^,]*)*\s*\)\s*}}/im;
+      var fileContents = await this.getFileContents({
+        gitlab,
+        filePath,
+        headSHA,
+      });
 
       logger_logger.withInfo(
-        "Successfully fetched file contents",
+        `Successfully fetched file contents. File size: ${fileContents.length} bytes`,
         integrationName,
-        headSHA,
-        "getFileContents"
+        CI_COMMIT_SHA,
+        "getAssetName"
+      );      
+
+      if (fileContents) {
+        logger_logger.withInfo(
+          "Starting regex matching",
+          integrationName,
+          CI_COMMIT_SHA,
+          "getAssetName"
+        );
+        const startRegex =
+            /{{\s*config\s*\(/im;
+        const startMatch = fileContents.match(startRegex);
+        let configSection = ''
+        if (startMatch) {
+          const startIndex = startMatch.index;
+          const openParensIndex = fileContents.indexOf('(', startIndex) + 1;
+          let openParensCount = 1;
+          let endIndex = openParensIndex;
+
+          while (openParensCount > 0 && endIndex < fileContents.length) {
+            const char = fileContents[endIndex];
+
+            if (char === '(') {
+                openParensCount++;
+            } else if (char === ')') {
+                openParensCount--;
+            }
+            endIndex++;
+            }
+            
+            const endMarker = '}}';
+            const finalEndIndex = fileContents.indexOf(endMarker, endIndex) + endMarker.length;
+
+            configSection = fileContents.substring(startIndex, finalEndIndex);
+            logger_logger.withInfo(
+              "Extracted config section",
+              integrationName,
+              CI_COMMIT_SHA,
+              "getAssetName"
+            );
+
+            if (configSection){
+              logger_logger.withInfo(
+                "Executing final regex",
+                integrationName,
+                CI_COMMIT_SHA,
+                "getAssetName"
+              );
+
+              var matches = regExp.exec(configSection);
+
+              logger_logger.withInfo(
+                "Successfully executed regex matching",
+                integrationName,
+                CI_COMMIT_SHA,
+                "getAssetName"
+              );
+
+            }
+            if (matches) {
+              logger_logger.withInfo(
+                `Found a match: ${matches[1].trim()}`,
+                integrationName,
+                CI_COMMIT_SHA,
+                "getAssetName"
+              );
+
+              return matches[1].trim();
+            }
+        }
+      }
+
+      logger_logger.withInfo(
+        `Using filename as asset name: ${fileName}`,
+        integrationName,
+        CI_COMMIT_SHA,
+        "getAssetName"
       );
 
-      return buff.toString("utf8");
-    } catch (error) {
+      return fileName;
+    }catch (error) {
       logger_logger.withError(
         `Error in getFileContents: ${error.message}`,
         integrationName,
